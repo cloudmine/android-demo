@@ -16,11 +16,16 @@
 
 package com.example.android.notepad;
 
+import org.json.JSONException;
+
+import me.cloudmine.api.CMAdapter;
+
 import com.example.android.notepad.NotePad.Notes;
 
 import android.app.ListActivity;
 import android.content.ComponentName;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -46,6 +51,7 @@ public class NotesList extends ListActivity {
     // Menu item ids
     public static final int MENU_ITEM_DELETE = Menu.FIRST;
     public static final int MENU_ITEM_INSERT = Menu.FIRST + 1;
+    public static final int MENU_ITEM_REFRESH = Menu.FIRST + 2;
 
     /**
      * The columns we are interested in from the database
@@ -92,8 +98,13 @@ public class NotesList extends ListActivity {
         // This is our one standard application action -- inserting a
         // new note into the list.
         menu.add(0, MENU_ITEM_INSERT, 0, R.string.menu_insert)
-                .setShortcut('3', 'a')
-                .setIcon(android.R.drawable.ic_menu_add);
+        .setShortcut('3', 'a')
+        .setIcon(android.R.drawable.ic_menu_add);
+        
+        // ilya: add refresh
+        menu.add(0, MENU_ITEM_REFRESH, 0, "Refresh")
+        .setShortcut('4', 'r')
+        .setIcon(android.R.drawable.ic_menu_view);
 
         // Generate any additional actions that can be performed on the
         // overall list.  In a normal install, there are no additional
@@ -110,7 +121,8 @@ public class NotesList extends ListActivity {
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         super.onPrepareOptionsMenu(menu);
-        final boolean haveItems = getListAdapter().getCount() > 0;
+        //final boolean haveItems = getListAdapter().getCount() > 0;
+        boolean haveItems = true;
 
         // If there are any notes in the list (which implies that one of
         // them is selected), then we need to generate the actions that
@@ -149,6 +161,19 @@ public class NotesList extends ListActivity {
         case MENU_ITEM_INSERT:
             // Launch activity to insert a new item
             startActivity(new Intent(Intent.ACTION_INSERT, getIntent().getData()));
+            return true;
+        case MENU_ITEM_REFRESH:
+        	// Ilya: added a refresh button 
+        	
+            // Perform a managed query. The Activity will handle closing and requerying the cursor
+            // when needed.
+            Cursor cursor = managedQuery(getIntent().getData(), PROJECTION, null, null,
+                    Notes.DEFAULT_SORT_ORDER);
+
+            // Used to map notes entries from the database to views
+            SimpleCursorAdapter adapter = new SimpleCursorAdapter(this, R.layout.noteslist_item, cursor,
+                    new String[] { Notes.TITLE }, new int[] { android.R.id.text1 });
+            setListAdapter(adapter);
             return true;
         }
         return super.onOptionsItemSelected(item);
