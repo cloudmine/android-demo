@@ -1,30 +1,12 @@
 package me.cloudmine.api;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;  
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -59,30 +41,7 @@ public class CMAdapter {
         }
         return buf.toString();
     }
-	
-	private String readStream(InputStream in){
-		BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-		StringBuffer buff = new StringBuffer();
-		String line;
-		
-		try {
-			while( (line = reader.readLine()) != null ){
-				buff.append(line);
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		try {
-			in.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		return buff.toString();
-	}
+
 
 	public JSONObject getValues(){
 		return getValues(null);	
@@ -96,48 +55,32 @@ public class CMAdapter {
 			uri += "?keys=" + join(keys, ',');
 		}
 		
-		HttpClient client = new DefaultHttpClient();
-		HttpGet request = new HttpGet(uri);
+		RawRESTClient client = new RawRESTClient();
+		if( client.makeRequest(RESTClient.GET, uri) == null ){
+			return null;
+		}
 		
-		HttpResponse httpResponse;
-		 
-        try {
-        	System.out.println("Making GET request to: " + uri);
-            httpResponse = client.execute(request);
-            int responseCode = httpResponse.getStatusLine().getStatusCode();
-            String message = httpResponse.getStatusLine().getReasonPhrase();
-            
-            if(responseCode - 200 > 100){
-            	Log.d("JSON", "GET call returned HTTP code: " + responseCode);
-            	return null;
-            }
- 
-            HttpEntity entity = httpResponse.getEntity();
-            if (entity != null) {
-            	String content = readStream(entity.getContent());
-            	
-            	JSONObject response; 
-            	try {
-					response = new JSONObject(content);
-					JSONObject success = response.getJSONObject("success");
-					
-					return success;
-					
-				} catch (JSONException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				
-            }
-        } catch (ClientProtocolException e)  {
-            client.getConnectionManager().shutdown();
-            e.printStackTrace();
-        } catch (IOException e) {
-            client.getConnectionManager().shutdown();
-            e.printStackTrace();
-        }
-		
-        return null;
+		if( client.getStatusCode() >= 300 ){
+			Log.d("JSON", "GET call returned HTTP code: " + client.getStatusCode());
+        	return null;
+		}
+
+		String content = client.getBody();
+		if(content == null){
+			return null;
+		}
+
+		JSONObject response; 
+		try {
+			response = new JSONObject(content);
+			JSONObject success = response.getJSONObject("success");
+
+			return success;
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+
+		return null;
 	}
 	
 	public ContentValues jsonToContentValues(JSONObject json){
@@ -175,77 +118,56 @@ public class CMAdapter {
 	}
 	
 	public String setValue(String key, JSONObject value){
-		JSONObject data = new JSONObject();
+		JSONObject dataobj = new JSONObject();
 		try {
-			data.put(key, value);
+			dataobj.put(key, value);
 		} catch (JSONException e2) {
 			// TODO Auto-generated catch block
 			e2.printStackTrace();
 		}
 		
-		String content = "";
+		String data= "";
 		try {
-			content = data.toString(4);
-			System.out.println("Putting value: " + content);
+			data = dataobj.toString(4);
+			System.out.println("Putting value: " + data);
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 		String uri = API_SERVER + "/v1/app/" + APP_ID + "/text/";
+		
+		RawRESTClient client = new RawRESTClient();
+		client.setHeader("content-type", "application/json");
+		client.makeRequest(RESTClient.PUT, uri, data);
+		if(client.getResponse() == null){
+			return null;
+		}
 
-		HttpClient client = new DefaultHttpClient();
-		HttpPut request = new HttpPut(uri);
-		request.setHeader("content-type", "application/json");
+		Log.d("JSON", "PUT call returned HTTP code: " + client.getStatusCode() + " " + client.getStatusMessage());
+
+		String content = client.getBody();
+		if(content == null){
+			return null;
+		}
+
+		if(client.getStatusCode() >= 300){
+			Log.d("JSON", "HTTP content: " + content);
+			return null;
+		}
+
+		JSONObject response; 
 		try {
-			request.setEntity(new StringEntity(content, "UTF-8"));
-		} catch (UnsupportedEncodingException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			response = new JSONObject(content);
+			JSONObject success = response.getJSONObject("success");
+
+			String key_ret = success.keys().next().toString();
+			return key_ret;
+
+		} catch (JSONException e) {
+			e.printStackTrace();
 		}
 		
-		HttpResponse httpResponse;
-		 
-        try {
-        	System.out.println("Making PUT request to: " + uri);
-            httpResponse = client.execute(request);
-            int responseCode = httpResponse.getStatusLine().getStatusCode();
-            String message = httpResponse.getStatusLine().getReasonPhrase();
-
-        	Log.d("JSON", "PUT call returned HTTP code: " + responseCode + " " + message);
-
-            HttpEntity entity = httpResponse.getEntity();
-            if (entity != null) {
-            	String rcontent = readStream(entity.getContent());
-            	
-                if(responseCode - 200 > 100){
-                	Log.d("JSON", "HTTP content: " + rcontent);
-                	return null;
-                }
-                 	
-            	JSONObject response; 
-            	try {
-					response = new JSONObject(rcontent);
-					JSONObject success = response.getJSONObject("success");
-
-					String key_ret = success.keys().next().toString();
-					
-					return key_ret;
-					
-				} catch (JSONException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				
-            }
-        } catch (ClientProtocolException e)  {
-            client.getConnectionManager().shutdown();
-            e.printStackTrace();
-        } catch (IOException e) {
-            client.getConnectionManager().shutdown();
-            e.printStackTrace();
-        }
-
         return null;
 	}
 	
@@ -260,25 +182,12 @@ public class CMAdapter {
 			uri += "?keys=" + join(keys, ',');
 		}
 		
-		HttpClient client = new DefaultHttpClient();
-		HttpDelete request = new HttpDelete(uri);
-		
-		HttpResponse httpResponse;
-		 
-        try {
-        	System.out.println("Making DELETE request to: " + uri);
-            httpResponse = client.execute(request);
-            int responseCode = httpResponse.getStatusLine().getStatusCode();
-            String message = httpResponse.getStatusLine().getReasonPhrase();
+		RawRESTClient client = new RawRESTClient();
+		if( client.makeRequest(RESTClient.DELETE, uri) == null ){
+			return;
+		}
 
-        	Log.d("JSON", "DELETE call returned HTTP code: " + responseCode);
+		Log.d("JSON", "DELETE call returned HTTP code: " + client.getStatusCode());
         	
-        } catch (ClientProtocolException e)  {
-            client.getConnectionManager().shutdown();
-            e.printStackTrace();
-        } catch (IOException e) {
-            client.getConnectionManager().shutdown();
-            e.printStackTrace();
-        }
 	}
 }
