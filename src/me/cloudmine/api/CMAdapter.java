@@ -19,6 +19,7 @@ public class CMAdapter {
 	//private static String API_SERVER = "http://192.168.1.31:3000";
 	//private static String API_SERVER = "http://10.37.110.112:3000";
 	private static String API_SERVER = "http://api-staging.cloudmine.me";
+	//private static String API_SERVER = "http://107.20.225.32";
 
 	//private static String API_SERVER = "http://ubuntu:3000";
 	private static String APP_ID = "a6c0afaaa90e188a64d21cef93anotes";
@@ -107,17 +108,17 @@ public class CMAdapter {
 		return m;
 	}
 	
-	public String setValue(String key, Map values){
+	public String updateValue(String key, Map values){
 		JSONObject value = new JSONObject(values);
-		return setValue(key, value);
+		return updateValue(key, value);
 	}
 	
-	public String setValue(String key, ContentValues values){
+	public String updateValue(String key, ContentValues values){
 		JSONObject value = new JSONObject(contentValuesToMap(values));
-		return setValue(key, value);
+		return updateValue(key, value);
 	}
 	
-	public String setValue(String key, JSONObject value){
+	public String updateValue(String key, JSONObject value){
 		JSONObject dataobj = new JSONObject();
 		try {
 			dataobj.put(key, value);
@@ -139,7 +140,7 @@ public class CMAdapter {
 		
 		RawRESTClient client = new RawRESTClient();
 		client.setHeader("content-type", "application/json");
-		client.makeRequest(RESTClient.PUT, uri, data);
+		client.makeRequest(RESTClient.POST, uri, data);
 		if(client.getResponse() == null){
 			return null;
 		}

@@ -178,7 +178,7 @@ public class CMNotesProvider extends ContentProvider {
         CMAdapter cmadapter = new CMAdapter();
         // for the moment, use time for the key
         String key = System.currentTimeMillis() + "";
-        String new_key = cmadapter.setValue(key, values);
+        String new_key = cmadapter.updateValue(key, values);
 		if(new_key != null){
 			System.out.println("Set key: " + key + ", got key: " + new_key);
 			Uri noteUri = ContentUris.withAppendedId(NotePad.Notes.CONTENT_URI, Long.parseLong(new_key));
@@ -241,7 +241,7 @@ public class CMNotesProvider extends ContentProvider {
             String noteId = uri.getPathSegments().get(1);
             //count = db.update(NOTES_TABLE_NAME, values, Notes._ID + "=" + noteId
             //        + (!TextUtils.isEmpty(where) ? " AND (" + where + ')' : ""), whereArgs);
-            cmAdapter.setValue(noteId, values);
+            cmAdapter.updateValue(noteId, values);
             count = 1;
             break;
 
