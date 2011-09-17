@@ -1,12 +1,10 @@
 package me.cloudmine.api;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -14,16 +12,10 @@ import android.content.ContentValues;
 import android.util.Log;
 
 public class CMAdapter {
-	//private static HashMap<String, String> sNotesProjectionMap;
-	//private static String API_SERVER = "http://192.168.30.131:3000";
-	//private static String API_SERVER = "http://192.168.1.31:3000";
-	//private static String API_SERVER = "http://10.37.110.112:3000";
-	private static String API_SERVER = "http://api-staging.cloudmine.me";
-	//private static String API_SERVER = "http://107.20.225.32";
+	private static String API_SERVER = "http://nosslapi.cloudmine.me";
+	private static String APP_ID = "YOUR_APP_ID_HERE";
+	private static String API_KEY = "YOUR_API_KEY_HERE";
 
-	//private static String API_SERVER = "http://ubuntu:3000";
-	private static String APP_ID = "a6c0afaaa90e188a64d21cef93anotes";
-	
 	public static String join(Object[] array, char separator) {
         if (array == null) {
             return null;
@@ -57,6 +49,8 @@ public class CMAdapter {
 		}
 		
 		RawRESTClient client = new RawRESTClient();
+		client.setHeader("X-CloudMine-ApiKey", API_KEY);
+
 		if( client.makeRequest(RESTClient.GET, uri) == null ){
 			return null;
 		}
@@ -139,6 +133,7 @@ public class CMAdapter {
 		String uri = API_SERVER + "/v1/app/" + APP_ID + "/text/";
 		
 		RawRESTClient client = new RawRESTClient();
+		client.setHeader("X-CloudMine-ApiKey", API_KEY);
 		client.setHeader("content-type", "application/json");
 		client.makeRequest(RESTClient.POST, uri, data);
 		if(client.getResponse() == null){
@@ -184,6 +179,7 @@ public class CMAdapter {
 		}
 		
 		RawRESTClient client = new RawRESTClient();
+		client.setHeader("X-CloudMine-ApiKey", API_KEY);
 		if( client.makeRequest(RESTClient.DELETE, uri) == null ){
 			return;
 		}
